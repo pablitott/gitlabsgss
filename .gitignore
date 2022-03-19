@@ -1,0 +1,8 @@
+*.zip
+*.exe
+*.tfstate.*
+tf/.terraform/**/*
+tf/modules/networking/.terraform/**/*
+tf/modules/networking/.terraform.*
+tf/**/terraform.tfstate
+.vscode/settings.json

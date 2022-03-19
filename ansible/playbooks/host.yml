@@ -1,0 +1,174 @@
+---
+- name: Check Connectivity
+  hosts: aws
+  gather_facts: no
+  tasks: 
+    - name: Check Connectivity
+      ping:
+
+- name: update existing packages
+  hosts: aws
+  gather_facts: no
+  tasks:
+    - yum:
+        name: "*"
+        state: latest
+
+- name: install pre-requisites
+  hosts: aws
+  gather_facts: no
+  tasks:
+    - yum:
+        name: "{{ packages }}"
+        state: present
+  vars:
+    packages:
+      - curl 
+      - policycoreutils-python 
+      - openssh-server 
+      - perl 
+      - yum-utils
+      - stunnel
+
+- name: 
+  gather_facts: no
+  hosts: aws
+  tasks:
+    - name: Verify ssh is started
+      service: 
+        name: sshd
+        state: started
+        enabled: yes
+
+- name: Verify firewall is present
+  gather_facts: no
+  hosts: aws
+  tasks:
+    - yum: 
+        name: firewalld
+        state: present
+    - service: 
+        name: firewalld
+        state: started
+        enabled: yes
+
+- name: Verify unmask firewalld
+  gather_facts: no
+  hosts: aws
+  tasks:
+    - name: unmask firewall
+      command: systemctl unmask firewalld
+    - name: add http service permananet
+      command: firewall-cmd --permanent --add-service=http
+    - name: add https service permananet
+      command: firewall-cmd --permanent --add-service=https
+    - name: reload firewalld
+      service: 
+          name: firewalld
+          state: reloaded
+
+- name: install postfix
+  gather_facts: no
+  hosts: aws
+  tasks:
+    - yum:
+        name: "postfix"
+        state: present
+    - service: 
+        name: postfix
+        state: reloaded
+        enabled: yes
+
+- name: set hostname
+  gather_facts: no
+  hosts: aws
+  tags: verify
+  tasks:
+    - hostname: 
+        name: "{{ server_host_name }}"
+    - command: "hostname"
+      register: current_hostname
+    - debug:
+        msg: "{{ current_hostname.stdout }}"
+
+- name: download and prepare gitlab-ee
+  gather_facts: no
+  hosts: aws
+  tags: verify
+  vars_files: 
+    - global_vars.yml
+  tasks: 
+    - get_url:
+        url: "{{ gitlabURL }}"
+        dest: /tmp/
+    - command: bash /tmp/script.rpm.sh
+
+- name: install gitlab-ee
+  gather_facts: no
+  hosts: aws
+  tasks:
+    - yum:
+        name: gitlab-ee
+        state: present
+  environment: 
+    EXTERNAL_URL: "https://{{ server_host_name }}.sgss.aws"
+
+- name: update ldaps in stunnel
+  gather_facts: no
+  hosts: aws
+  tags: verify
+  tasks:
+    - name: copy ldaps.conf
+      copy: 
+        src: ./ldaps.conf
+        dest: /etc/stunnel
+    - name: copy stunnel@.service
+      copy: 
+        src: ./stunnel@.service
+        dest: /etc/systemd/system
+    - name: copy and setup gitlab.rb, make sure the ip is the correct one
+      template: 
+        src: ./gitlab.j2
+        dest: /etc/gitlab/gitlab.rb
+
+- name: 
+  gather_facts: no
+  hosts: aws
+  tasks:
+    - name: reload daemon
+      command: systemctl daemon-reload
+    - name: enable stunnel@.service
+      command: systemctl enable --now stunnel@ldaps
+
+- name: reconfigure gitlab.rb
+  gather_facts: no
+  hosts: aws
+  tags: verify
+  tasks:
+    - name: reconfigure gitlab-ctl it may take long
+      command: gitlab-ctl reconfigure
+    - name: check ldap
+      command: gitlab-rake gitlab:ldap:check
+
+- name: get initial gitlab password
+  gather_facts: no
+  hosts: aws
+  tags: verify
+  tasks:
+    - name: get password file status
+      stat:
+        path: /etc/gitlab/initial_root_password
+      register: password_file
+    - debug:
+        msg: "{{ password_file.stat.exists }}"
+    - name: get initial_root_password file content
+      command: "grep -e '^Password:*' /etc/gitlab/initial_root_password"
+      register: root_password
+      when: password_file.stat.exists
+    - name: show initial password
+      when: password_file.stat.exists
+      debug:
+        msg: "{{ root_password.stdout }}"
+    - debug:
+        msg: "Password file does not exists anymore"
+      when: password_file.stat.exists == false 

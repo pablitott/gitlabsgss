@@ -1,0 +1,77 @@
+1. Install RHEL 7.9 using HOS-RHEL-7-9-ISO-2021-12-14-1639512292-Z-
+PRODUCTION.iso (you may need to expand /var after installation)
+lvextend -r +L 10G /dev/mapper/VolGroup-lv_var
+2. Mount cdrom:
+blkid 
+# Look for /dev/sr? the use that in the next command 
+mount /dev/sr1 /mnt
+3. Install packages
+yum install -y curl policycoreutils-python openssh-server perl yum-utils stunnel
+4. Enable OpenSSH server daemon if not enabled:
+systemctl status sshd
+systemctl enable sshd
+systemctl start sshd
+5. Check if opening the firewall is needed with: 
+systemctl status firewalld
+firewall-cmd --permanent --add-service=http
+firewall-cmd --permanent --add-service=https
+systemctl reload firewalld
+6. Make sure the hostname is set to something that will resolve:
+hostnamectl --static set-hostname foo.bar.com
+7. Install gitlab-ee
+EXTERNAL_URL=http://foo.bar.com yum localinstall -y gitlab-ee-14.6.2-
+ee.0.el7.x86_64.rpm
+8. Within 24 hours, retrieve the initial password:
+cat /etc/gitlab/initial_root_password
+9. Configure stunnel to handle encryption to ldap:
+cat << EOT >> /etc/stunnel/ldaps.conf
+options = NO_SSLv2
+sslVersion = TLSv1.2
+
+[ldaps]
+client = yes
+accept = 389
+connect = idm.bar.com:636 
+EOT
+
+cat << EOT >> /etc/systemd/system/stunnel@.service
+[Unit]
+Description=SSL tunnel for network daemons
+After=network.target
+After=syslog.target
+
+[Install]
+WantedBy=multi-user.target
+Alias=stunnel.target
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/stunnel /etc/stunnel/%i.conf
+ExecStop=/usr/bin/killall -9 stunnel
+
+TimeoutSec=600
+
+Restart=always
+PrivateTmp=false
+EOT
+
+systemctl daemon-reload
+systemctl enable --now stunnel@ldaps
+10. Modify /etc/gitlab/gitlab.rb to enable ldap:
+gitlab_rails['ldap_servers'] = YAML.load <<-'EOS'
+  main: # 'main' is the GitLab 'provider ID' of this LDAP server
+    label: 'LDAP'
+    host: '127.0.0.1'
+    port: 389
+    uid: 'uid'
+    bind_dn: 'uid=bind_user,cn=users,cn=accounts,dc=bar,dc=com'
+    password: ''
+    encryption: 'plain' # "start_tls" or "simple_tls" or "plain"
+    verify_certificates: false
+    base: 'cn=users,cn=accounts,dc=bar,dc=com'
+    user_filter: 
+'(memberOf=cn=gitlab_users,cn=groups,cn=accounts,dc=bar,dc=com)'
+EOS
+11. Reconfigure gitlab and check for ldap:
+gitlab-ctl reconfigure
+gitlab-rake gitlab:ldap:check

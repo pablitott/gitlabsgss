@@ -1,0 +1,16 @@
+- name: Check Connectivity
+  hosts: aws
+  gather_facts: no
+  tasks: 
+    - name: Check Connectivity
+      ping:
+
+- name: set hostname
+  gather_facts: no
+  hosts: aws
+  tags: verify
+  tasks:
+    - hostname: 
+        name: "{{ server_host_name }}"
+    - debug:
+        msg: "{{ server_host_name }}"

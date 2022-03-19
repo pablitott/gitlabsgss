@@ -1,0 +1,16 @@
+external_url 'https://{{ server_host_name }}'
+grafana['enable'] = true
+gitlab_rails['ldap_servers'] = YAML.load <<-'EOS'
+  main: # 'main' is the GitLab 'provider ID' of this LDAP server
+    label: 'LDAP'
+    host: '{{ ansible_ssh_host }}'
+    port: 389
+    uid: 'uid'
+    bind_dn: 'uid=bind_user,cn=users,cn=accounts,dc=bar,dc=com'
+    password: ''
+    encryption: 'plain' # "start_tls" or "simple_tls" or "plain"
+    verify_certificates: false
+    base: 'cn=users,cn=accounts,dc=bar,dc=com'
+    user_filter: 
+'(memberOf=cn=gitlab_users,cn=groups,cn=accounts,dc=bar,dc=com)'
+    EOS
