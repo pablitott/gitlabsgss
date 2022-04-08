@@ -31,6 +31,7 @@ resource "aws_subnet" "private_subnet" {
 resource "aws_eip" "nat_eip" {
   vpc        = true
   depends_on = [aws_internet_gateway.ig]
+  count      = "${length(var.public_subnets_cidr)}"
 }
 
 /* Internet gateway for the public subnet */
@@ -48,11 +49,12 @@ resource "aws_internet_gateway" "ig"{
 /* NAT */
 # TODO: Remove 0
 resource "aws_nat_gateway" "public_nat" {
-  allocation_id = "${aws_eip.nat_eip.id}"
-  subnet_id     = "${element(aws_subnet.public_subnet.*.id, 0)}"
+  count         = "${length(var.public_subnets_cidr)}"
+  allocation_id = "${element(aws_eip.nat_eip.*.id, count.index)}"
+  subnet_id     = "${element(aws_subnet.public_subnet.*.id, count.index)}"
   depends_on    = [aws_internet_gateway.ig]
   tags = {
-    Name        = "GitLab NAT Gateway"
+    Name        = "GitLab NAT Gateway Public ${count.index}"
     Project     = "${var.aws_project_name}"
     Terraform   = true
   }
@@ -60,10 +62,10 @@ resource "aws_nat_gateway" "public_nat" {
 
 /* Routing table for private subnet */
 resource "aws_route_table" "private" {
-  count         = "${length(var.public_subnets_cidr)}"
+  count         = "${length(var.private_subnets_cidr)}"
   vpc_id = "${var.rdt_vcp.id}"
   tags = {
-    Name        = "GitLab Private Route Table${count.index}"
+    Name        = "GitLab Private Route Table ${count.index}"
     Project     = "${var.aws_project_name}"
     Terraform   = true
   }
@@ -71,16 +73,18 @@ resource "aws_route_table" "private" {
 
 /* Routing table for public subnet */
 resource "aws_route_table" "public" {
-  vpc_id = "${var.rdt_vcp.id}"
+  count         = "${length(var.private_subnets_cidr)}"
+  vpc_id        = "${var.rdt_vcp.id}"
   tags = {
     Project     = "${var.aws_project_name}"
-    Name        = "GitLab Public Route Table"
+    Name        = "GitLab Public Route Table ${count.index}"
     Terraform   = true
   }
 }
 
 resource "aws_route" "public_internet_gateway" {
-  route_table_id         = "${aws_route_table.public.id}"
+  count         = "${length(var.public_subnets_cidr)}"
+  route_table_id         = "${element(aws_route_table.public.*.id, count.index)}"
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = "${aws_internet_gateway.ig.id}"
 }
@@ -89,14 +93,14 @@ resource "aws_route" "private_nat_gateway" {
   count                  = "${length(aws_route_table.private)}"
   route_table_id         = "${element(aws_route_table.private.*.id, count.index)}"
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = "${aws_nat_gateway.public_nat.id}"
+  nat_gateway_id         = "${element(aws_nat_gateway.public_nat.*.id, count.index)}"
 }
 
 /* Route table associations */
 resource "aws_route_table_association" "public" {
   count          = "${length(var.public_subnets_cidr)}"
   subnet_id      = "${element(aws_subnet.public_subnet.*.id, count.index)}"
-  route_table_id = "${aws_route_table.public.id}"
+  route_table_id = "${element(aws_route_table.public.*.id, count.index)}"
 }
 
 resource "aws_route_table_association" "private" {

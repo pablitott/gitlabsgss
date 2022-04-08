@@ -48,8 +48,8 @@ resource "aws_launch_configuration" "high" {
   instance_type               = "${var.ec2_type}"
   key_name                    = "${var.key_name.id}"
   depends_on                  = [var.gitlab_ami_base]
-  # security_groups             = ["${aws_security_group.high.id}", "${var.security_groups}"]
-  security_groups             = "${var.security_groups}"
+  security_groups             = ["${aws_security_group.high.id}", "${var.security_groups}"]
+  # security_groups             = "${var.security_groups}"
 
   lifecycle {
     create_before_destroy = true

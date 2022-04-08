@@ -84,3 +84,32 @@ resource "aws_security_group" "remote_ssh" {
   }
 
 }
+
+# resource "aws_security_group" "ssh_private" {
+#   count              = "${length(var.public_subnets_cidr)}"
+#   name               = "ssh_Private ${count.index}"
+#   description        = "Allow ssh private"
+#   vpc_id             = "${aws_vpc.rdt_vpc.id}"
+#   ingress {
+#     description      = "allow ssh"
+#     from_port        = 22
+#     to_port          = 22
+#     protocol         = "tcp"
+#     cidr_blocks      = ["${element(var.public_subnets_cidr.*, count.index)}"]
+#   }
+#   egress {
+#     from_port        = 0
+#     to_port          = 0
+#     protocol         = "-1"
+#     cidr_blocks      = ["0.0.0.0/0"]
+#     ipv6_cidr_blocks = ["::/0"]
+#   }
+
+#   tags = {
+#     "Project"        = "${var.aws_project_name}"
+#     "Name"           = "Private SSH"   # FIXME: Replace hard code Tag Name
+#     "Terraform"      = true
+#   }
+
+# }
+

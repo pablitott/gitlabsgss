@@ -48,8 +48,8 @@ resource "aws_launch_configuration" "low" {
   instance_type               = "${var.ec2_type}"
   key_name                    = "${var.key_name.id}"
   depends_on                  = [var.gitlab_ami_base]
-  # security_groups             = ["${aws_security_group.low.id}","${var.security_groups}"]
-  security_groups             = "${var.security_groups}"
+  security_groups             = ["${aws_security_group.low.id}","${var.security_groups}"]
+  # security_groups             = "${var.security_groups}"
 
   lifecycle {
     create_before_destroy = true
@@ -80,7 +80,7 @@ resource "aws_autoscaling_group" "low" {
 }
 
 resource "aws_security_group" "low" {
-  name               = "DevSecOpsLowArea"
+  name               = "DevSecOpsLow"
   description        = "Allow Access only from low Area"
   vpc_id             = "${var.rdt_vcp.id}"
   ingress {

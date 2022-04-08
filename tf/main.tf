@@ -26,11 +26,11 @@ module "alb" {
 
     ec2_type             = "${var.ec2_type}"
     key_name             = "${aws_key_pair.generated_key}"
-    security_groups      = [
-    "${aws_security_group.open_ssh.id}",
-    "${aws_security_group.RemoteAccess.id}"
-    ]
-    # security_groups      = "${aws_security_group.RemoteAccess.id}"
+    # security_groups      = [
+    # "${aws_security_group.open_ssh.id}",
+    # "${aws_security_group.RemoteAccess.id}"
+    # ]
+    security_groups      = "${aws_security_group.RemoteAccess.id}"
 }
 
 # Imported Resource. Do not remove
@@ -98,17 +98,19 @@ resource "aws_network_interface" "gitlab" {
   }
 }
 
-resource "aws_network_interface" "private" {
-  count            = "${length(var.private_subnets_cidr)}"
-  subnet_id        = "${element(module.networking.private_subnet.*.id, count.index)}"
-  security_groups  = [ "${aws_security_group.open_ssh.id}" ]
+# resource "aws_network_interface" "private" {
+#   count            = "${length(var.private_subnets_cidr)}"
+#   subnet_id        = "${element(module.networking.private_subnet.*.id, count.index)}"
+#   security_groups  = [ "${aws_security_group.open_ssh.id}" ]
 
-  tags = {
-    "Name"         = "Private NetWork Interface ${count.index + 1}"
-    "Project"      = "${var.aws_project_name}"
-    "Terraform"    = true
-  }
-}
+
+
+#   tags = {
+#     "Name"         = "Private NetWork Interface ${count.index}"
+#     "Project"      = "${var.aws_project_name}"
+#     "Terraform"    = true
+#   }
+# }
 /* EC2 Instances */
 
 resource "aws_ami_from_instance" "gitlab_ami_base" {
