@@ -6,3 +6,4 @@ tf/modules/networking/.terraform/**/*
 tf/modules/networking/.terraform.*
 tf/**/terraform.tfstate
 .vscode/settings.json
+tf/terraform.tfstate.backup

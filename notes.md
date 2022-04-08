@@ -6,22 +6,22 @@
 source: [ssh into ec2 in private subnet](https://digitalcloud.training/ssh-into-ec2-in-private-subnet/)
 * Bastion host security group needs to allow SSH from the client computer
 	And outbound to the private EC2 instance
-* The private EC2 Instance must allow inbound SSH from the public instance security group 
+* The private EC2 Instance must allow inbound SSH from the public instance security group
 * On the client run:
 	> ssh-add -K myPrivateKey.pem
   You should see a result like this:
-	> Identity Added: myPrivateKey.pem (myPrivateKey.pem) 
+	> Identity Added: myPrivateKey.pem (myPrivateKey.pem)
 * Configure the ssh agent on linux
 	> ssh add -L myPrivateKey.pem
 	output must be similar as above
-* Connect to the bastion 
+* Connect to the bastion
 	> ssh –A ec2-user@<bastion-IP-address or DNS-entry>
 * Now that you’ve used agent forwarding you can simply connect to any instance that is using the same key pair by simply issuing the following command:
 	> ssh ec2-user@<instance-IP-address or DNS-entry>
 
 
 
-### Resources created 
+### Resources created
 Following resources where created using terrasight apply, keep the list for security purposes
 1.	data.aws_ami.Amazon_Linux2
 2.	data.aws_availability_zones.available
@@ -67,3 +67,35 @@ Following resources where created using terrasight apply, keep the list for secu
 42.	module.networking.aws_subnet.public_subnet[0]
 43.	module.networking.aws_subnet.public_subnet[1]
 44.	module.networking.aws_vpc.vpc
+
+
+ssh forward
+# In remote server in public area:
+	Create an entry in ~/.ssh/config as
+````
+Host gitlab-private-1
+    Hostname 18.252.41.11
+    User ec2-user
+    IdentityFile "~/.ssh/sgss_alx_key_pair_default.pem"
+    StrictHostKeyChecking no
+    PasswordAuthentication no
+    IdentitiesOnly yes
+    LogLevel FATAL
+    ForwardAgent yes
+````
+**Make sure ForwardAgent is et to yes**
+
+````bash
+#public host
+sudo sed  -i 's/#AllowAgentForwarding yes/AllowAgentForwarding yes/' /etc/ssh/sshd_config
+sudo service sshd start
+#guest
+eval `ssh-agent -s`
+ssh-add ~/.ssh/sgss_alx_key_pair_default.pem
+````
+
+### voala
+
+TODO: Remove vpc creation and use VPC from Jonathan
+TODO: Provision Host instances with gitlab app
+TODO: Redirect listeners to private instances

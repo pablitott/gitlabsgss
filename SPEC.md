@@ -33,8 +33,8 @@ Augment to a virtual two-level system.  In this phase, we create a second isolat
 -	Demonstrate ability to separately log into the two instances.  
 -	Establish an S3 bucket that will be our virtual cross-domain.  Basically, the low side should have write-only access to this bucket, and the high side should have read-only access.  
 -	Manually demonstrate:
-    o	Export TAR file (gitlab export) from low side to S3 bucket
-    o	Import TAR file (gitlab import) on high side, and merge with existing git state
+    o	Export TAR file (gitlab export) from low side to S3 bucket.  Gitlab provides an api described here: [Project Import/Export API](https://docs.gitlab.com/ee/api/project_import_export.html)
+    o	Import TAR file (gitlab import) on high side, and merge with existing git state.  
     o	Flow of git branches, tags, wiki content from low to high
 -	Implement, ideally in Python, REST based automation to automatically call low-to-high on low side, and produce TAR files.
     o	Time-triggered

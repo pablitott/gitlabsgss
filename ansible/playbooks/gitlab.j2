@@ -1,4 +1,5 @@
 external_url 'https://{{ server_host_name }}'
+letsencrypt['enable'] = false
 grafana['enable'] = true
 gitlab_rails['ldap_servers'] = YAML.load <<-'EOS'
   main: # 'main' is the GitLab 'provider ID' of this LDAP server

@@ -1,24 +1,12 @@
-resource "aws_vpc" "vpc"{
-  cidr_block        = "${var.vpc_cidr}"
-  instance_tenancy  = "default"
-
-    tags = {
-        Name        = "${var.aws_project_name}-vpc"
-        Project     = "${var.aws_project_name}"
-        Terraform   = true
-    }
-}
-
-/*==== Subnets ======*/
 /* Public subnet */
 resource "aws_subnet" "public_subnet" {
-  vpc_id                  = "${aws_vpc.vpc.id}"
-  count                   = "${var.public_subnets_count}"
-  cidr_block              = "${cidrsubnet(var.vpc_cidr, var.subnet_bit, count.index)}"
-  availability_zone       = "${element(var.availability_zones.*.id,   count.index)}"
+  vpc_id                  = "${var.rdt_vcp.id}"
+  count                   = "${length(var.public_subnets_cidr)}"
+  cidr_block              = "${element(var.public_subnets_cidr, count.index)}"
+  availability_zone       = "${element(var.availability_zones,   count.index)}"
   map_public_ip_on_launch = true
   tags = {
-    Name        = "public-subnet-${element(var.availability_zones.*.id, count.index)}"
+    Name        = "GitLab Public Subnet-${element(var.availability_zones, count.index)}"
     Project     = "${var.aws_project_name}"
     Terraform   = true
   }
@@ -26,21 +14,20 @@ resource "aws_subnet" "public_subnet" {
 
 /* Private subnet */
 resource "aws_subnet" "private_subnet" {
-  vpc_id                  = "${aws_vpc.vpc.id}"
-  count                   = "${var.private_subnets_count}"
-  # cidr_block              = "${element(var.private_subnets_cidr, count.index)}"
-
-  cidr_block              = "${cidrsubnet(var.vpc_cidr, var.subnet_bit, count.index + var.public_subnets_count)}"
-  availability_zone       = "${element(var.availability_zones.*.id,   count.index)}"
+  vpc_id                  = "${var.rdt_vcp.id}"
+  count                   = "${length(var.private_subnets_cidr)}"
+  cidr_block              = "${element(var.private_subnets_cidr, count.index )}"
+  availability_zone       = "${element(var.availability_zones,   count.index)}"
   map_public_ip_on_launch = false
   tags = {
-    Name        = "private-subnet-${element(var.availability_zones.*.id, count.index)}"
+    Name        = "GitLab Private Subnet-${element(var.availability_zones, count.index)}"
     Project     = "${var.aws_project_name}"
     Terraform   = true
   }
 }
 
 /* Elastic IP for NAT */
+# NOTE: I think I have to remove this instance
 resource "aws_eip" "nat_eip" {
   vpc        = true
   depends_on = [aws_internet_gateway.ig]
@@ -48,22 +35,24 @@ resource "aws_eip" "nat_eip" {
 
 /* Internet gateway for the public subnet */
 resource "aws_internet_gateway" "ig"{
-  vpc_id = aws_vpc.vpc.id
+  vpc_id = var.rdt_vcp.id
 
   tags = {
-    Name        = "default"
-    Project     = var.aws_project_name
-    Terraform   = true
+    Environment         = "PROD"
+    Managed_By          = "rdt-gov"
+    Name                = "rdt-igw"
+    ResponsibleParty    = "AntennaServices"
   }
 }
 
 /* NAT */
-resource "aws_nat_gateway" "nat" {
+# TODO: Remove the 0 (Zero)
+resource "aws_nat_gateway" "public_nat" {
   allocation_id = "${aws_eip.nat_eip.id}"
   subnet_id     = "${element(aws_subnet.public_subnet.*.id, 0)}"
   depends_on    = [aws_internet_gateway.ig]
   tags = {
-    Name        = "nat gateway"
+    Name        = "GitLab NAT Gateway"
     Project     = "${var.aws_project_name}"
     Terraform   = true
   }
@@ -71,9 +60,10 @@ resource "aws_nat_gateway" "nat" {
 
 /* Routing table for private subnet */
 resource "aws_route_table" "private" {
-  vpc_id = "${aws_vpc.vpc.id}"
+  count         = "${length(var.public_subnets_cidr)}"
+  vpc_id = "${var.rdt_vcp.id}"
   tags = {
-    Name        = "private-route-table"
+    Name        = "GitLab Private Route Table${count.index}"
     Project     = "${var.aws_project_name}"
     Terraform   = true
   }
@@ -81,10 +71,10 @@ resource "aws_route_table" "private" {
 
 /* Routing table for public subnet */
 resource "aws_route_table" "public" {
-  vpc_id = "${aws_vpc.vpc.id}"
+  vpc_id = "${var.rdt_vcp.id}"
   tags = {
     Project     = "${var.aws_project_name}"
-    Name        = "public-route-table"
+    Name        = "GitLab Public Route Table"
     Terraform   = true
   }
 }
@@ -96,30 +86,31 @@ resource "aws_route" "public_internet_gateway" {
 }
 
 resource "aws_route" "private_nat_gateway" {
-  route_table_id         = "${aws_route_table.private.id}"
+  count                  = "${length(aws_route_table.private)}"
+  route_table_id         = "${element(aws_route_table.private.*.id, count.index)}"
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = "${aws_nat_gateway.nat.id}"
+  nat_gateway_id         = "${aws_nat_gateway.public_nat.id}"
 }
 
 /* Route table associations */
 resource "aws_route_table_association" "public" {
-  count          = "${var.public_subnets_count}"
+  count          = "${length(var.public_subnets_cidr)}"
   subnet_id      = "${element(aws_subnet.public_subnet.*.id, count.index)}"
   route_table_id = "${aws_route_table.public.id}"
 }
 
 resource "aws_route_table_association" "private" {
-  count          = "${var.private_subnets_count}"
+  count          = "${length(var.private_subnets_cidr)}"
   subnet_id      = "${element(aws_subnet.private_subnet.*.id, count.index)}"
-  route_table_id = "${aws_route_table.private.id}"
+  route_table_id = "${element(aws_route_table.private.*.id, count.index) }"
 }
 
 /*==== VPC's Default Security Group ======*/
 resource "aws_security_group" "default" {
   name        = "${var.aws_project_name}-default-sg"
   description = "Default security group to allow inbound/outbound from the VPC"
-  vpc_id      = "${aws_vpc.vpc.id}"
-  depends_on  = [aws_vpc.vpc]
+  vpc_id      = "${var.rdt_vcp.id}"
+  depends_on  = [var.rdt_vcp]
   ingress {
     from_port = "0"
     to_port   = "0"
@@ -135,7 +126,8 @@ resource "aws_security_group" "default" {
   }
   tags = {
     Project     = "${var.aws_project_name}"
-    Name        = "default security group"
+    Name        = "GitLab Default Security Group"
     Terraform   = true
   }
 }
+

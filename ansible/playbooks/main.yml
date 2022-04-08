@@ -111,12 +111,12 @@
         name: gitlab-ee
         state: present
   environment: 
-    EXTERNAL_URL: "https://{{ server_host_name }}.sgss.aws"
+    EXTERNAL_URL: "https://{{ server_host_name }}"
 
 - name: update ldaps in stunnel
   gather_facts: no
   hosts: aws
-  tags: verify
+  # tags: verify
   tasks:
     - name: copy ldaps.conf
       copy: 
@@ -153,7 +153,7 @@
 - name: get initial gitlab password
   gather_facts: no
   hosts: aws
-  tags: verify
+  tags: verify, output
   tasks:
     - name: get password file status
       stat:

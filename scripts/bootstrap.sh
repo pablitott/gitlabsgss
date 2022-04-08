@@ -82,6 +82,7 @@ systemctl enable --now stunnel@ldaps
 # grafana must be disabled
 cat << EOT >> /etc/gitlab/gitlab.rb
 grafana['enable'] = false
+letsencrypt['enable'] = false
 gitlab_rails['ldap_servers'] = YAML.load <<-'EOS'
   main: # 'main' is the GitLab 'provider ID' of this LDAP server
     label: 'LDAP'

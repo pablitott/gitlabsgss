@@ -11,5 +11,4 @@
   * Ready to setup the Application Load balancer (I hope)
 ## 11 March 2022
   * Bash script to automate terraform process to create instances on aws and provision them using ansible
-## 12 March 202
-  * Use  [AWS Application Balancer](https://github.com/anandg1/Terraform-AWS-ApplicationLoadBalancer)
+  

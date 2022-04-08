@@ -39,41 +39,62 @@ variable "vpc_cidr"{
     type         = string
     default      = ""
 }
+variable "public_subnets_cidr"{
+    type        = list
+    default     = []
+}
 
-variable "private_subnets_count"{}
+variable "private_subnets_cidr"{
+    type        = list
+    default     = []
+}
 
-variable "public_subnets_count"{}
-variable "subnet_bit"{
+variable "alb_min_size"{
     type        = number
-    default     = 4
+    default     = 1
 }
-variable "public_subnets_cidr"{}
 
-variable "private_subnets_cidr"{}
+variable "alb_max_size"{
+    type        = number
+    default     = 1
+}
+variable "alb_desired_capacity"{
+    type        = number
+    default     = 1
+}
+
+# variable "subnet_bit"{
+#     type    = number
+#     default = 4
+# }
+
 ##########################################################################
-variable "ami_owners"{
-    type        = list
-    default     = []
-}
+# variable "ami_owners"{
+#     type        = list
+#     default     = []
+# }
 
-variable "ami_name_regex"{
-    type        = string
-    default     = ""
-    description = ""
-}
+# variable "ami_name_regex"{
+#     type        = string
+#     default     = ""
+#     description = ""
+# }
 
-variable "ami_owner_alias"{
-    type        = list
-    default     = []
-}
+# variable "ami_owner_alias"{
+#     type        = list
+#     default     = []
+# }
 
 
-variable "ami_architecture"{
-    type        = list
-    default     = []
-}
-###########################################################################
-
+# variable "ami_architecture"{
+#     type        = list
+#     default     = []
+# }
+# ###########################################################################
+# variable "ami_gitlab"{
+#     type        = list
+#     default     = []
+# }
 variable "aws_project_name"{
     type        = string
     default     = ""
@@ -94,8 +115,17 @@ variable "key_pair_name"{
 variable "remote_ipaddress"{
     type        = list
     default     = []
-    description = "name of the ec2-instance base"
+    description = "IP address allowed to connect to gitlab"
 }
+
+variable "allowed_cidr_blocks" {
+    # TODO: will replace remote_ipaddress above
+    type        = list
+    default     = []
+    description = "IP address allowed to connect to gitlab"
+}
+
+
 variable "public_ec2_name"{
     type        = string
     default     = ""
@@ -108,9 +138,16 @@ variable "private_ec2_name"{
     description = "name of the ec2-instance base"
 }
 
-variable "ec2_hostname"{
+variable "public_ec2_hostname"{
     type        = string
     default     = ""
+    description = "Hostname used for public EC2 instances"
+}
+
+variable "private_ec2_hostname"{
+    type        = string
+    default     = ""
+    description = "Hostname used for private EC2 instances"
 }
 
 variable "ec2_user_name"{
