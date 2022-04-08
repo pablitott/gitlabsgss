@@ -8,10 +8,6 @@ variable "availability_zones"{
     default     = []
 }
 
-variable "subnet_bit"{
-    type    = number
-    default = 4
-}
 variable "public_subnets_cidr"{
     type        = list
     default     = []

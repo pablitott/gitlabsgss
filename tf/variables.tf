@@ -119,7 +119,6 @@ variable "remote_ipaddress"{
 }
 
 variable "allowed_cidr_blocks" {
-    # TODO: will replace remote_ipaddress above
     type        = list
     default     = []
     description = "IP address allowed to connect to gitlab"

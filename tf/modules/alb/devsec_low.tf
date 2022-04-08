@@ -99,7 +99,7 @@ resource "aws_security_group" "low" {
   }
   tags = {
     "Project"        = "${var.aws_project_name}"
-    "Name"           = "DevSecOpsLow"   # FIXME: Replace hard code Tag Name
+    "Name"           = "DevSecOpsLow"
     "Terraform"      = true
   }
   lifecycle {

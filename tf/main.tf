@@ -1,5 +1,20 @@
 # https://aws.amazon.com/premiumsupport/knowledge-center/public-load-balancer-private-ec2/
 ################ Modules  #############################
+variable "devSecArea" {
+    type        = list
+    default     = ["high", "low"]
+    description = ""
+}
+
+variable "AreaName" {
+    type        = map
+    default     = {
+      "high"    = 0
+      "low"     = 1
+    }
+    description = ""
+}
+
 /* networking  */
 module "networking" {
   source = "./modules/networking"
@@ -26,10 +41,6 @@ module "alb" {
 
     ec2_type             = "${var.ec2_type}"
     key_name             = "${aws_key_pair.generated_key}"
-    # security_groups      = [
-    # "${aws_security_group.open_ssh.id}",
-    # "${aws_security_group.RemoteAccess.id}"
-    # ]
     security_groups      = "${aws_security_group.RemoteAccess.id}"
 }
 
@@ -76,7 +87,7 @@ resource "aws_network_interface" "public" {
     ]
 
   tags = {
-    "Name"         = "Public NetWork Interface ${count.index + 1}"
+    "Name"         = "Public NetWork Interface ${var.devSecArea[count.index]}"
     "Project"      = "${var.aws_project_name}"
     "Terraform"    = true
   }
@@ -84,7 +95,7 @@ resource "aws_network_interface" "public" {
 
 resource "aws_network_interface" "gitlab" {
 
-  subnet_id        = "${element(module.networking.public_subnet.*.id, 1)}"
+  subnet_id        = "${element(module.networking.public_subnet.*.id, var.AreaName["low"])}"
 
   security_groups  = [
     "${aws_security_group.remote_ssh.id}",
@@ -98,23 +109,8 @@ resource "aws_network_interface" "gitlab" {
   }
 }
 
-# resource "aws_network_interface" "private" {
-#   count            = "${length(var.private_subnets_cidr)}"
-#   subnet_id        = "${element(module.networking.private_subnet.*.id, count.index)}"
-#   security_groups  = [ "${aws_security_group.open_ssh.id}" ]
-
-
-
-#   tags = {
-#     "Name"         = "Private NetWork Interface ${count.index}"
-#     "Project"      = "${var.aws_project_name}"
-#     "Terraform"    = true
-#   }
-# }
 /* EC2 Instances */
-
 resource "aws_ami_from_instance" "gitlab_ami_base" {
-  # for_each = { for item in var.ami_gitlab_base: item => item }
   name               = "${var.ami_gitlab_base}"
   source_instance_id = "${aws_instance.gitlab.id}"
   # depends_on         = [aws_instance.gitlab]
@@ -148,7 +144,6 @@ resource "aws_instance" "gitlab" {
 }
 
 resource "aws_instance" "publichost" {
-  # NOTE: Code for private hosts  BASTION
   count               = "${length(var.public_subnets_cidr)}"
   ami                 = "${data.aws_ami.Amazon_Linux2.image_id}"
   instance_type       = "${var.ec2_type}"
@@ -164,7 +159,7 @@ resource "aws_instance" "publichost" {
   }
 
   tags                = {
-      "Name"          = "${var.public_ec2_name}${count.index + 1}"
+      "Name"          = "${var.public_ec2_name}${var.devSecArea[count.index]}"
       "Project"       = "${var.aws_project_name}"
       "HostName"      = "${var.public_ec2_hostname}.${var.ec2_gitlab_domain}"
 

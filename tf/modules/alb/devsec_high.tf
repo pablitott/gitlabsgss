@@ -49,7 +49,6 @@ resource "aws_launch_configuration" "high" {
   key_name                    = "${var.key_name.id}"
   depends_on                  = [var.gitlab_ami_base]
   security_groups             = ["${aws_security_group.high.id}", "${var.security_groups}"]
-  # security_groups             = "${var.security_groups}"
 
   lifecycle {
     create_before_destroy = true
@@ -99,7 +98,7 @@ resource "aws_security_group" "high" {
   }
   tags = {
     "Project"        = "${var.aws_project_name}"
-    "Name"           = "DevSecOpsHigh"   # FIXME: Replace hard code Tag Name
+    "Name"           = "DevSecOpsHigh"
     "Terraform"      = true
   }
 }

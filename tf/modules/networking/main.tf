@@ -27,7 +27,6 @@ resource "aws_subnet" "private_subnet" {
 }
 
 /* Elastic IP for NAT */
-# NOTE: I think I have to remove this instance
 resource "aws_eip" "nat_eip" {
   vpc        = true
   depends_on = [aws_internet_gateway.ig]
@@ -47,7 +46,6 @@ resource "aws_internet_gateway" "ig"{
 }
 
 /* NAT */
-# TODO: Remove 0
 resource "aws_nat_gateway" "public_nat" {
   count         = "${length(var.public_subnets_cidr)}"
   allocation_id = "${element(aws_eip.nat_eip.*.id, count.index)}"

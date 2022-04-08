@@ -33,7 +33,6 @@ data "template_file" "aws_ec2_hostname" {
   template = "${lookup(aws_instance.gitlab.tags, "HostName")}"
 }
 
-# TODO: find a better way to create the template string
 data "template_file" "aws_ec2_servers" {
   template = "${lookup(aws_instance.gitlab.tags, "Name")}    ansible_ssh_host=${aws_instance.gitlab.public_ip}  server_host_name=${lookup(aws_instance.gitlab.tags, "HostName")}"
 }

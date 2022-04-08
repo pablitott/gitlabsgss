@@ -95,7 +95,3 @@ ssh-add ~/.ssh/sgss_alx_key_pair_default.pem
 ````
 
 ### voala
-
-TODO: Remove vpc creation and use VPC from Jonathan
-TODO: Provision Host instances with gitlab app
-TODO: Redirect listeners to private instances
