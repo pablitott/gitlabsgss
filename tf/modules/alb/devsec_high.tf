@@ -37,7 +37,7 @@ resource "aws_alb_listener_rule" "high" {
 
   condition {
     host_header {
-      values = ["myprivate2.private"]
+      values = ["myprivate.high.private"]
     }
   }
 }

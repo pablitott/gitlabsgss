@@ -46,7 +46,7 @@ resource "aws_internet_gateway" "ig"{
 }
 
 /* NAT */
-# TODO: Remove the 0 (Zero)
+# TODO: Remove 0
 resource "aws_nat_gateway" "public_nat" {
   allocation_id = "${aws_eip.nat_eip.id}"
   subnet_id     = "${element(aws_subnet.public_subnet.*.id, 0)}"

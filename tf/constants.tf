@@ -11,8 +11,8 @@ variable "ami-amazon-owner"{
 }
 
 variable "ami_gitlab_base" {
-    type        = list
-    default     = ["gitlab-ami"]
+    type        = string
+    default     = "gitlab-ami"
     description = ""
 }
 

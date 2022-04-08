@@ -22,7 +22,7 @@ module "alb" {
     subnet_private       = "${module.networking.private_subnet}"
     # certificate_arn      = "${aws_acm_certificate.cert.arn}"
     private_ec2_name     = "${var.private_ec2_name}"
-    gitlab_ami_base      = "${aws_ami_from_instance.gitlab_ami_base[var.ami_gitlab_base[0]]}"
+    gitlab_ami_base      = "${aws_ami_from_instance.gitlab_ami_base}"
 
     ec2_type             = "${var.ec2_type}"
     key_name             = "${aws_key_pair.generated_key}"
@@ -112,14 +112,15 @@ resource "aws_network_interface" "private" {
 /* EC2 Instances */
 
 resource "aws_ami_from_instance" "gitlab_ami_base" {
-  for_each = { for item in var.ami_gitlab_base: item => item }
-  name               = "${each.key}"
+  # for_each = { for item in var.ami_gitlab_base: item => item }
+  name               = "${var.ami_gitlab_base}"
   source_instance_id = "${aws_instance.gitlab.id}"
   # depends_on         = [aws_instance.gitlab]
   tags                = {
-      "Name"          = "${each.key}"
+      "Name"          = "${var.ami_gitlab_base}"
       "Project"       = "${var.aws_project_name}"
   }
+
 }
 
 resource "aws_instance" "gitlab" {
@@ -135,7 +136,7 @@ resource "aws_instance" "gitlab" {
     device_index         = 0
   }
 
-  user_data           = "../scripts/bootstrap.sh"
+  user_data           = "./scripts/ssh_forward.sh"
   tags                = {
       "Name"          = "gitlab-base-for-ami"
       "Project"       = "${var.aws_project_name}"
